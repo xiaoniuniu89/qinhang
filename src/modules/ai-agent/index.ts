@@ -121,7 +121,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
     loadKnowledgeBase()
     fastify.log.info('Knowledge base loaded successfully')
   } catch (error) {
-    fastify.log.error('Failed to load knowledge base:', error)
+    fastify.log.error({ err: error }, 'Failed to load knowledge base')
   }
 
   const openai = new OpenAI({
@@ -162,13 +162,16 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
 
       // Call OpenAI with tools
       let response = await openai.chat.completions.create({
-        model: config.ai.model || 'gpt-4o-mini',
+        model: config.ai?.model || 'gpt-4o-mini',
         messages,
         tools,
         tool_choice: 'auto'
       })
 
-      let assistantMessage = response.choices[0].message
+      let assistantMessage = response.choices[0]?.message
+      if (!assistantMessage) {
+        throw new Error('No response from OpenAI')
+      }
 
       // Handle tool calls if present (with max iterations to prevent loops)
       let iterations = 0
@@ -182,6 +185,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
 
         // Execute each tool call
         for (const toolCall of assistantMessage.tool_calls) {
+          if (toolCall.type !== 'function') continue
           const toolResult = executeToolCall(
             toolCall.function.name,
             JSON.parse(toolCall.function.arguments)
@@ -205,13 +209,16 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         ]
 
         response = await openai.chat.completions.create({
-          model: config.ai.model || 'gpt-4o-mini',
+          model: config.ai?.model || 'gpt-4o-mini',
           messages: messagesWithTools,
           tools,
           tool_choice: 'auto'
         })
 
-        assistantMessage = response.choices[0].message
+        assistantMessage = response.choices[0]?.message
+        if (!assistantMessage) {
+          throw new Error('No response from OpenAI')
+        }
       }
 
       // Add final assistant response to history

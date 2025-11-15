@@ -6,6 +6,18 @@ const parseBool = (value: string | undefined, defaultValue: boolean): boolean =>
   return value.toLowerCase() === 'true' || value === '1'
 }
 
+const aiConfig = process.env.AI_API_KEY ? {
+  provider: (process.env.AI_PROVIDER as 'openai' | 'anthropic') || 'openai',
+  ...(process.env.AI_API_KEY && { apiKey: process.env.AI_API_KEY }),
+  ...(process.env.AI_MODEL && { model: process.env.AI_MODEL })
+} as const : undefined
+
+const vectorDbConfig = process.env.VECTOR_DB_URL ? {
+  type: (process.env.VECTOR_DB_TYPE as 'chromadb' | 'pinecone' | 'qdrant') || 'chromadb',
+  ...(process.env.VECTOR_DB_URL && { url: process.env.VECTOR_DB_URL }),
+  ...(process.env.VECTOR_DB_API_KEY && { apiKey: process.env.VECTOR_DB_API_KEY })
+} as const : undefined
+
 export const config: AppConfig = {
   // Server
   port: Number(process.env.PORT) || 3000,
@@ -24,30 +36,22 @@ export const config: AppConfig = {
   // Database - default to SQLite for easier self-hosting
   database: {
     type: (process.env.DB_TYPE as 'postgres' | 'sqlite') || 'sqlite',
-    url: process.env.DATABASE_URL,
-    filename: process.env.DB_FILENAME || './data/qinhang.db'
+    ...(process.env.DATABASE_URL && { url: process.env.DATABASE_URL }),
+    ...(process.env.DB_FILENAME && { filename: process.env.DB_FILENAME })
   },
 
   // Storage - default to local filesystem
   storage: {
     type: (process.env.STORAGE_TYPE as 'local' | 's3') || 'local',
-    localPath: process.env.STORAGE_PATH || './uploads',
-    s3Bucket: process.env.S3_BUCKET,
-    s3Region: process.env.S3_REGION || 'us-east-1',
-    maxFileSize: Number(process.env.MAX_FILE_SIZE) || 100 // 100MB default
+    ...(process.env.STORAGE_PATH && { localPath: process.env.STORAGE_PATH }),
+    ...(process.env.S3_BUCKET && { s3Bucket: process.env.S3_BUCKET }),
+    ...(process.env.S3_REGION && { s3Region: process.env.S3_REGION }),
+    ...(process.env.MAX_FILE_SIZE && { maxFileSize: Number(process.env.MAX_FILE_SIZE) })
   },
 
   // AI configuration (optional)
-  ai: process.env.AI_API_KEY ? {
-    provider: (process.env.AI_PROVIDER as 'openai' | 'anthropic') || 'openai',
-    apiKey: process.env.AI_API_KEY,
-    model: process.env.AI_MODEL || 'gpt-4'
-  } : undefined,
+  ...(aiConfig && { ai: aiConfig }),
 
   // Vector DB configuration (optional)
-  vectorDb: process.env.VECTOR_DB_URL ? {
-    type: (process.env.VECTOR_DB_TYPE as 'chromadb' | 'pinecone' | 'qdrant') || 'chromadb',
-    url: process.env.VECTOR_DB_URL,
-    apiKey: process.env.VECTOR_DB_API_KEY
-  } : undefined
+  ...(vectorDbConfig && { vectorDb: vectorDbConfig })
 }

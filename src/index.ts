@@ -1,4 +1,6 @@
+import 'dotenv/config'
 import Fastify from 'fastify'
+import cors from '@fastify/cors'
 import { config } from './config/index.js'
 
 // Import modules
@@ -12,6 +14,11 @@ const fastify = Fastify({
   logger: {
     level: config.env === 'development' ? 'info' : 'warn'
   }
+})
+
+// Enable CORS
+await fastify.register(cors, {
+  origin: true // Allow all origins in development, configure for production
 })
 
 // Health check endpoint

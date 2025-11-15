@@ -17,8 +17,15 @@ const fastify = Fastify({
 })
 
 // Enable CORS
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000']
+
 await fastify.register(cors, {
-  origin: true // Allow all origins in development, configure for production
+  origin: config.env === 'production' && process.env.ALLOWED_ORIGINS
+    ? allowedOrigins
+    : true, // Allow all in development
+  credentials: true
 })
 
 // Health check endpoint

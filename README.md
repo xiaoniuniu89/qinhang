@@ -131,10 +131,30 @@ Routes:
 - (Future: POST, PUT, DELETE for management)
 
 ### AI Agent Module
+
+**Status**: ✅ Implemented
+
 Routes:
 - `POST /ai/chat` - Chat with AI assistant
+  - Request body: `{ message: string, sessionId?: string }`
+  - Response: `{ message: string, sessionId: string }`
+- `DELETE /ai/chat/:sessionId` - Clear chat history for a session
+
+Features:
+- ✅ OpenAI GPT-4o-mini integration
+- ✅ Chat memory with 20 message limit per session
+- ✅ Function calling / Tools support
+- ✅ Built-in tool: `get_lesson_info` (pricing, availability, general info)
+- ✅ Session-based conversation history (in-memory)
 
 Requires: `AI_API_KEY` environment variable
+
+Example request:
+```bash
+curl -X POST http://localhost:3000/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What are your lesson prices?", "sessionId": "user-123"}'
+```
 
 ### Media Hosting Module
 Routes:

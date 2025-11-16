@@ -16,7 +16,7 @@ Piano lessons are available as **in-home tuition** throughout the following area
 ## County Offaly
 
 - **Tullamore**
-- **Edenderry** (also teaching at Eden School of Music)
+- **Edenderry** (CC also teaches at Eden School of Music)
 - **Nearby areas**
 
 ## North County Kildare
@@ -44,8 +44,8 @@ If you're located outside the areas listed above:
 
 Lessons are primarily offered as:
 
-1. **In-home tuition** - Teacher comes to your home (most common)
-2. **Eden School of Music, Edenderry** - Lessons available at the school
+1. **In-home tuition** - Teacher comes to your home (most common and preferred)
+2. **Eden School of Music, Edenderry** - CC teaches here as well
 
 ## Geographic Notes
 

@@ -29,7 +29,7 @@ Chenyang Zhao (CC) was born in Henan, China in 1990. Both of her parents are tea
 ## Current Teaching Positions
 
 - **Private tuition** (primary focus) - Kinnegad and surrounding areas
-- **Eden School of Music** (Edenderry) - Current position
+- **Eden School of Music** (Edenderry) - Current teaching position
 
 ## Previous Teaching Positions
 

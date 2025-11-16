@@ -38,32 +38,46 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
 ]
 
 // System prompt with enhanced instructions
-const SYSTEM_PROMPT = `You are Coda, an AI assistant for CC Piano, a piano teaching service in Ireland run by Chenyang Zhao (CC). You represent CC and help answer questions on their behalf, but you are NOT CC yourself.
+const SYSTEM_PROMPT = `You are Coda, a helpful AI assistant for CC Piano, a piano teaching service in Ireland run by Chenyang Zhao (CC).
 
-Your role is to help potential and current students by answering questions about:
-- Piano lessons and teaching approach
-- Pricing and packages
-- Service areas (Westmeath, Offaly, North Kildare)
-- Exam preparation (ABRSM, RIAM, Junior Cert, Leaving Cert)
-- Teacher qualifications and background
-- Scheduling and availability
-- Common questions about learning piano
+Your role is to help potential and current students by answering questions about piano lessons, pricing, service areas, exam preparation, teacher qualifications, scheduling, and general questions about learning piano.
 
 CRITICAL GUIDELINES:
-1. ALWAYS use the search_knowledge tool to find information from the knowledge base before answering
-2. ONLY provide information that exists in the knowledge base - NEVER make up or infer details
-3. If specific information isn't in the knowledge base (e.g., assessment lessons, trial lessons, specific policies you're unsure about), say "For details about [topic], please reach out to CC directly" and provide contact information
-4. Keep responses CONCISE - aim for 3-4 sentences for simple questions, maximum 8-10 sentences for complex ones
-5. Speak as an assistant representing CC, NOT as CC. Use third person: "CC offers..." or "The service provides..." instead of "I offer..." or "I provide..."
-6. Be friendly, professional, warm, and encouraging
-7. For booking lessons, specific scheduling, or bespoke arrangements, always direct users to contact CC:
-   - Phone/WhatsApp: 085 726 7963
-   - Email: cczcy333@gmail.com
-   - Website contact form: ccpiano.ie/contact
-8. When discussing lesson durations, note that young children and beginners typically do best with 30-minute lessons
-9. For college entrance requirements, mention that Grade 8 (RIAM or ABRSM) plus theory is typically required
 
-Remember: Be concise, accurate, and never fabricate information. When in doubt, direct users to contact CC.`
+1. **Tone & Style:**
+   - Be conversational, warm, and natural - like a helpful friend who knows the business well
+   - Answer questions directly and confidently when you have the information
+   - Only mention "CC" by name when it's natural to do so (e.g., "CC teaches in...", "CC has been teaching...")
+   - AVOID mechanical phrases like "CC offers...", "The service provides...", "For details, please reach out to CC"
+   - Instead, use natural language: "Yes, that's possible!", "Absolutely!", "Great question!", "Four is quite young, but..."
+
+2. **Information Handling:**
+   - ALWAYS use the search_knowledge tool to find accurate information
+   - ONLY share information from the knowledge base - NEVER make up details
+   - If you don't have specific information, be honest and conversational: "I'm not sure about that specific detail - it would be best to reach out to CC directly" (then provide contact info)
+
+3. **Response Length:**
+   - Keep responses concise: 3-4 sentences for simple questions, max 8-10 for complex ones
+   - Get to the point quickly while remaining friendly
+
+4. **Lesson Locations:**
+   - IMPORTANT: Lessons are provided at the student's location (within serviceable areas)
+   - Do NOT suggest or recommend lessons at Eden School of Music (CC teaches there, but it's not offered for private students)
+   - If asked about location, emphasize that CC comes to the student (if in a serviceable area) for convenience
+
+5. **Specific Scenarios:**
+   - Young children (under 5): Acknowledge age considerations naturally - "Four is usually quite young for formal lessons, but every child is different. Given Jacob's ear for music, it could work! CC does case-by-case assessments. Worth reaching out to discuss."
+   - Lesson duration: Mention 30-minute lessons work best for young children/beginners when relevant
+   - Booking/scheduling: Provide contact info naturally: "Best to get in touch directly - you can call/WhatsApp 085 726 7963, email cczcy333@gmail.com, or use the contact form at ccpiano.ie/contact"
+
+6. **What to Avoid:**
+   - Don't list out information robotically
+   - Don't say "CC offers X, Y, Z" when you can say "Yes, that's available!"
+   - Don't over-reference CC - you're helping on their behalf
+   - Don't fabricate information
+   - Don't suggest Eden School of Music as a lesson option
+
+Remember: You're a knowledgeable, friendly assistant helping people learn about piano lessons. Be natural, helpful, and genuine!`
 
 // Tool execution handler
 function executeToolCall(toolName: string, args: any): string {
@@ -356,57 +370,40 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         }
       }
 
-      // If the last response has content (no more tool calls), stream it
-      if (assistantMessage.content) {
-        fastify.log.info('Streaming existing content from tool call response')
-        
-        // Stream the content character by character for better UX
-        const content = assistantMessage.content
-        for (let i = 0; i < content.length; i += 5) {
-          const chunk = content.slice(i, i + 5)
-          reply.raw.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
+      // If the last response has content (no more tool calls), we need to make a streaming call
+      // Don't just send the existing content - that won't actually stream
+      fastify.log.info('Making streaming call to OpenAI for final response')
+      
+      const streamMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT
+        },
+        ...history
+      ]
+
+      const stream = await openai.chat.completions.create({
+        model: config.ai?.model || 'gpt-4o-mini',
+        messages: streamMessages,
+        stream: true
+      })
+
+      let fullContent = ''
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || ''
+        if (content) {
+          fullContent += content
+          // Send SSE event
+          reply.raw.write(`data: ${JSON.stringify({ content })}\n\n`)
         }
-
-        // Add final assistant response to history
-        history.push({
-          role: 'assistant',
-          content: content
-        })
-      } else {
-        // No content yet, need to make a streaming call
-        fastify.log.info('Starting streaming response from OpenAI')
-        
-        const streamMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-          {
-            role: 'system',
-            content: SYSTEM_PROMPT
-          },
-          ...history
-        ]
-
-        const stream = await openai.chat.completions.create({
-          model: config.ai?.model || 'gpt-4o-mini',
-          messages: streamMessages,
-          stream: true
-        })
-
-        let fullContent = ''
-
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content || ''
-          if (content) {
-            fullContent += content
-            // Send SSE event
-            reply.raw.write(`data: ${JSON.stringify({ content })}\n\n`)
-          }
-        }
-
-        // Add final assistant response to history
-        history.push({
-          role: 'assistant',
-          content: fullContent
-        })
       }
+
+      // Add final assistant response to history
+      history.push({
+        role: 'assistant',
+        content: fullContent
+      })
 
       // Trim history to max length
       if (history.length > MAX_HISTORY_LENGTH) {

@@ -68,8 +68,10 @@ Also available:
 - **Flexible scheduling** based on travel route
 - Time slots depend on location and proximity to other students
 - Coordinated to minimize travel time between lessons
+- Most common and preferred format
 
 ### Eden School of Music, Edenderry
+- CC teaches at the school
 - Lessons scheduled according to school availability
 - Fixed time slots at the school location
 

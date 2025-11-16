@@ -194,13 +194,13 @@ Extended lessons for:
 ## Lesson Location
 
 ### In-Home Tuition
-- Teacher comes to your home (most common)
+- Teacher comes to your home (most common and preferred)
 - Learn in familiar, comfortable environment
 - No travel time for students
 - Use of family piano
 
 ### Eden School of Music, Edenderry
-- Lessons available at the school
+- CC teaches at the school
 - Professional teaching environment
 - Quality instruments available
 

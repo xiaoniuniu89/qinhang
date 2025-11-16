@@ -180,8 +180,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         messages,
         tools,
         tool_choice: 'auto',
-        temperature: 0.7,
-        max_tokens: 1700 // Allow longer responses when needed
+        temperature: 0.7
       })
 
       let assistantMessage = response.choices[0]?.message

@@ -8,6 +8,9 @@ import { loadKnowledgeBase, searchKnowledge, getKnowledgeByTopic, extractRelevan
 const chatHistories = new Map<string, OpenAI.Chat.ChatCompletionMessageParam[]>()
 const MAX_HISTORY_LENGTH = 20
 
+// Track active requests per session to prevent concurrent requests
+const activeRequests = new Map<string, boolean>()
+
 // Enhanced tools with knowledge base search
 const tools: OpenAI.Chat.ChatCompletionTool[] = [
   {
@@ -152,6 +155,17 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       return reply.status(400).send({ error: 'Message is required' })
     }
 
+    // Check if there's already an active request for this session
+    if (activeRequests.get(sessionId)) {
+      return reply.status(429).send({
+        error: 'Request already in progress',
+        message: 'Please wait for the current request to complete before sending a new message.'
+      })
+    }
+
+    // Mark this session as having an active request
+    activeRequests.set(sessionId, true)
+
     try {
       // Get or initialize chat history for this session
       let history = chatHistories.get(sessionId) || []
@@ -256,6 +270,9 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         error: 'Failed to process chat message',
         details: error.message
       })
+    } finally {
+      // Clear the active request flag for this session
+      activeRequests.delete(sessionId)
     }
   })
 
@@ -273,6 +290,17 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
     if (!message) {
       return reply.status(400).send({ error: 'Message is required' })
     }
+
+    // Check if there's already an active request for this session
+    if (activeRequests.get(sessionId)) {
+      return reply.status(429).send({
+        error: 'Request already in progress',
+        message: 'Please wait for the current request to complete before sending a new message.'
+      })
+    }
+
+    // Mark this session as having an active request
+    activeRequests.set(sessionId, true)
 
     try {
       // Set headers for Server-Sent Events
@@ -429,6 +457,9 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       } catch (writeError) {
         fastify.log.error({ error: writeError }, 'Failed to write error response')
       }
+    } finally {
+      // Clear the active request flag for this session
+      activeRequests.delete(sessionId)
     }
   })
 

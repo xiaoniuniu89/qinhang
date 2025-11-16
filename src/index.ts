@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import rateLimit from '@fastify/rate-limit'
 import { config } from './config/index.js'
 
 // Import modules
@@ -26,6 +27,20 @@ await fastify.register(cors, {
     ? allowedOrigins
     : true, // Allow all in development
   credentials: true
+})
+
+// Register rate limiting
+await fastify.register(rateLimit, {
+  max: 20, // Maximum 20 requests
+  timeWindow: '1 minute', // Per minute per IP
+  errorResponseBuilder: function (request, context) {
+    return {
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit exceeded. You can make ${context.max} requests per ${context.after}. Please try again later.`,
+      retryAfter: context.ttl
+    }
+  }
 })
 
 // Health check endpoint

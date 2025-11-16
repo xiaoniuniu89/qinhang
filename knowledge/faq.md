@@ -95,9 +95,11 @@ A typical lesson includes:
 
 ### Where do lessons take place?
 
-Lessons are offered as:
-1. **In-home tuition** (most common and preferred) - Teacher comes to your home
-2. **Eden School of Music, Edenderry** - CC also teaches here
+Lessons are flexible and can be at:
+1. **Your home** - Teacher comes to you
+2. **Teacher's home** - Lessons at teacher's location
+
+There's no preference - it depends on scheduling, timing, and what works best for both parties.
 
 ---
 

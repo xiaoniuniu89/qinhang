@@ -193,16 +193,22 @@ Extended lessons for:
 
 ## Lesson Location
 
-### In-Home Tuition
-- Teacher comes to your home (most common and preferred)
-- Learn in familiar, comfortable environment
-- No travel time for students
-- Use of family piano
+### Flexible Location Options
 
-### Eden School of Music, Edenderry
-- CC teaches at the school
-- Professional teaching environment
-- Quality instruments available
+Lessons can take place at:
+- **Your home** - Teacher comes to you
+- **Teacher's home** - Lessons at teacher's location
+
+**No preference** - the location is flexible and depends on:
+- Scheduling and timing
+- What day/time works best
+- Your location within the service area
+- Mutual convenience
+
+Both options provide:
+- Comfortable learning environment
+- Access to quality piano
+- Focused, personalized instruction
 
 ---
 

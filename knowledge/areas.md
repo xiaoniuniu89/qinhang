@@ -42,10 +42,18 @@ If you're located outside the areas listed above:
 
 ## Teaching Locations
 
-Lessons are primarily offered as:
+Lessons are flexible and can take place at:
 
-1. **In-home tuition** - Teacher comes to your home (most common and preferred)
-2. **Eden School of Music, Edenderry** - CC teaches here as well
+1. **Student's home** - Teacher comes to you
+2. **Teacher's home** - Lessons at teacher's location
+
+There is **no preference** between these options - the location depends on:
+- What works best for scheduling
+- Day and time of the lesson
+- Student's location within the service area
+- Mutual convenience
+
+**Note**: Eden School of Music (Edenderry) is where CC teaches as part of their professional work, but private lessons are not offered there.
 
 ## Geographic Notes
 

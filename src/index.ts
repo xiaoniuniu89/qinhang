@@ -3,8 +3,10 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
 import { config } from './config/index.js'
+import { auth } from './lib/auth.js'
 
 // Import modules
+import settingsModule from './modules/settings/index.js'
 import blogModule from './modules/blog/index.js'
 import aiAgentModule from './modules/ai-agent/index.js'
 import mediaHostingModule from './modules/media-hosting/index.js'
@@ -17,7 +19,7 @@ const fastify = Fastify({
   }
 })
 
-// Enable CORS
+// Enable CORS - MUST be registered BEFORE the auth handler to handle preflight requests
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']
@@ -29,9 +31,47 @@ await fastify.register(cors, {
   credentials: true
 })
 
+// Mount Better Auth handler as a Fastify route handler
+// This ensures CORS headers are properly applied
+fastify.all('/api/auth/*', async (request, reply) => {
+  fastify.log.info({ url: request.url, method: request.method }, 'Auth handler processing request');
+  
+  try {
+    // Construct request URL
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    
+    // Convert Fastify headers to standard Headers object
+    const headers = new Headers();
+    Object.entries(request.headers).forEach(([key, value]) => {
+      if (value) headers.append(key, value.toString());
+    });
+    
+    // Create Fetch API-compatible request
+    const req = new Request(url.toString(), {
+      method: request.method,
+      headers,
+      body: request.body ? JSON.stringify(request.body) : null,
+    });
+    
+    // Process authentication request
+    const response = await auth.handler(req);
+    
+    // Forward response to client
+    reply.status(response.status);
+    response.headers.forEach((value: string, key: string) => reply.header(key, value));
+    reply.send(response.body ? await response.text() : null);
+  } catch (error) {
+    fastify.log.error({ error }, 'Authentication Error');
+    reply.status(500).send({
+      error: 'Internal authentication error',
+      code: 'AUTH_FAILURE'
+    });
+  }
+})
+
 // Register rate limiting
 await fastify.register(rateLimit, {
-  max: 20, // Maximum 20 requests
+  max: 100, // Maximum 100 requests
   timeWindow: '1 minute', // Per minute per IP
   errorResponseBuilder: function (request, context) {
     return {
@@ -61,6 +101,9 @@ fastify.get('/', async (request, reply) => {
 
 // Load modules conditionally based on configuration
 const loadModules = async () => {
+  // Always register settings module
+  await fastify.register(settingsModule)
+
   if (config.modules.blog) {
     await fastify.register(blogModule)
   }

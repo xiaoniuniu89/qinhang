@@ -257,6 +257,8 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
   }>('/ai/chat/stream', async (request, reply) => {
     const { message, sessionId = 'default' } = request.body
 
+    fastify.log.info({ message, sessionId }, 'Received streaming chat request')
+
     if (!message) {
       return reply.status(400).send({ error: 'Message is required' })
     }
@@ -266,6 +268,8 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       reply.raw.setHeader('Content-Type', 'text/event-stream')
       reply.raw.setHeader('Cache-Control', 'no-cache')
       reply.raw.setHeader('Connection', 'keep-alive')
+      reply.raw.setHeader('Access-Control-Allow-Origin', '*')
+      reply.raw.setHeader('Access-Control-Allow-Credentials', 'true')
 
       // Get or initialize chat history for this session
       let history = chatHistories.get(sessionId) || []
@@ -284,6 +288,8 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         },
         ...history
       ]
+
+      fastify.log.info('Calling OpenAI API for tool calls check')
 
       // Call OpenAI with tools (non-streaming first to handle tool calls)
       let response = await openai.chat.completions.create({
@@ -304,6 +310,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
 
       while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0 && iterations < maxIterations) {
         iterations++
+        fastify.log.info({ iteration: iterations, toolCalls: assistantMessage.tool_calls.length }, 'Processing tool calls')
 
         // Add assistant's tool call message to history
         history.push(assistantMessage)
@@ -311,6 +318,9 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         // Execute each tool call
         for (const toolCall of assistantMessage.tool_calls) {
           if (toolCall.type !== 'function') continue
+          
+          fastify.log.info({ toolName: toolCall.function.name }, 'Executing tool call')
+          
           const toolResult = executeToolCall(
             toolCall.function.name,
             JSON.parse(toolCall.function.arguments)
@@ -324,7 +334,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
           })
         }
 
-        // Get next response from the model (streaming this time if it's the final response)
+        // Get next response from the model (check if more tool calls needed)
         const messagesWithTools: OpenAI.Chat.ChatCompletionMessageParam[] = [
           {
             role: 'system',
@@ -346,37 +356,57 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         }
       }
 
-      // Now stream the final response
-      const streamMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT
-        },
-        ...history
-      ]
-
-      const stream = await openai.chat.completions.create({
-        model: config.ai?.model || 'gpt-4o-mini',
-        messages: streamMessages,
-        stream: true
-      })
-
-      let fullContent = ''
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || ''
-        if (content) {
-          fullContent += content
-          // Send SSE event
-          reply.raw.write(`data: ${JSON.stringify({ content })}\n\n`)
+      // If the last response has content (no more tool calls), stream it
+      if (assistantMessage.content) {
+        fastify.log.info('Streaming existing content from tool call response')
+        
+        // Stream the content character by character for better UX
+        const content = assistantMessage.content
+        for (let i = 0; i < content.length; i += 5) {
+          const chunk = content.slice(i, i + 5)
+          reply.raw.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
         }
-      }
 
-      // Add final assistant response to history
-      history.push({
-        role: 'assistant',
-        content: fullContent
-      })
+        // Add final assistant response to history
+        history.push({
+          role: 'assistant',
+          content: content
+        })
+      } else {
+        // No content yet, need to make a streaming call
+        fastify.log.info('Starting streaming response from OpenAI')
+        
+        const streamMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT
+          },
+          ...history
+        ]
+
+        const stream = await openai.chat.completions.create({
+          model: config.ai?.model || 'gpt-4o-mini',
+          messages: streamMessages,
+          stream: true
+        })
+
+        let fullContent = ''
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || ''
+          if (content) {
+            fullContent += content
+            // Send SSE event
+            reply.raw.write(`data: ${JSON.stringify({ content })}\n\n`)
+          }
+        }
+
+        // Add final assistant response to history
+        history.push({
+          role: 'assistant',
+          content: fullContent
+        })
+      }
 
       // Trim history to max length
       if (history.length > MAX_HISTORY_LENGTH) {
@@ -386,13 +416,25 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       // Save updated history
       chatHistories.set(sessionId, history)
 
+      fastify.log.info('Streaming complete')
+
       // Send final event
       reply.raw.write(`data: ${JSON.stringify({ done: true, sessionId })}\n\n`)
       reply.raw.end()
     } catch (error: any) {
-      fastify.log.error(error)
-      reply.raw.write(`data: ${JSON.stringify({ error: 'Failed to process chat message' })}\n\n`)
-      reply.raw.end()
+      fastify.log.error({ 
+        error: error.message, 
+        stack: error.stack,
+        sessionId,
+        message 
+      }, 'Error in streaming chat endpoint')
+      
+      try {
+        reply.raw.write(`data: ${JSON.stringify({ error: 'Failed to process chat message', details: error.message })}\n\n`)
+        reply.raw.end()
+      } catch (writeError) {
+        fastify.log.error({ error: writeError }, 'Failed to write error response')
+      }
     }
   })
 

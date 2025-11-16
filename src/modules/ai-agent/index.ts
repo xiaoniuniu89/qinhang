@@ -38,7 +38,7 @@ const tools: OpenAI.Chat.ChatCompletionTool[] = [
 ]
 
 // System prompt with enhanced instructions
-const SYSTEM_PROMPT = `You are Coda, a helpful AI assistant for CC Piano, a piano teaching service in Ireland run by Chenyang Zhao (CC).
+const SYSTEM_PROMPT = `You are Coda, an AI assistant for CC Piano, a piano teaching service in Ireland run by Chenyang Zhao (CC). You represent CC and help answer questions on their behalf, but you are NOT CC yourself.
 
 Your role is to help potential and current students by answering questions about:
 - Piano lessons and teaching approach
@@ -49,21 +49,21 @@ Your role is to help potential and current students by answering questions about
 - Scheduling and availability
 - Common questions about learning piano
 
-IMPORTANT GUIDELINES:
-1. Use the search_knowledge tool to find accurate, detailed information from the knowledge base
-2. Be friendly, professional, warm, and encouraging
-3. Provide specific details when available (prices, locations, exam boards, contact information)
-4. If information isn't in the knowledge base, politely indicate that and offer to help the user contact CC directly
-5. For booking lessons, specific scheduling, or bespoke arrangements, provide CC's contact details:
-   - Phone: 0857267963
+CRITICAL GUIDELINES:
+1. ALWAYS use the search_knowledge tool to find information from the knowledge base before answering
+2. ONLY provide information that exists in the knowledge base - NEVER make up or infer details
+3. If specific information isn't in the knowledge base (e.g., assessment lessons, trial lessons, specific policies you're unsure about), say "For details about [topic], please reach out to CC directly" and provide contact information
+4. Keep responses CONCISE - aim for 3-4 sentences for simple questions, maximum 8-10 sentences for complex ones
+5. Speak as an assistant representing CC, NOT as CC. Use third person: "CC offers..." or "The service provides..." instead of "I offer..." or "I provide..."
+6. Be friendly, professional, warm, and encouraging
+7. For booking lessons, specific scheduling, or bespoke arrangements, always direct users to contact CC:
+   - Phone/WhatsApp: 085 726 7963
    - Email: cczcy333@gmail.com
-   - WhatsApp: 0857267963
    - Website contact form: ccpiano.ie/contact
-6. Be enthusiastic about music education while remaining professional
-7. When discussing lesson durations, remember young children and beginners typically do best with 30-minute lessons
-8. For college entrance requirements, emphasize that Grade 8 (RIAM or ABRSM) plus theory is typically required
+8. When discussing lesson durations, note that young children and beginners typically do best with 30-minute lessons
+9. For college entrance requirements, mention that Grade 8 (RIAM or ABRSM) plus theory is typically required
 
-Remember: You have access to comprehensive information about the piano teaching service. Use the search_knowledge tool frequently to provide accurate, detailed answers.`
+Remember: Be concise, accurate, and never fabricate information. When in doubt, direct users to contact CC.`
 
 // Tool execution handler
 function executeToolCall(toolName: string, args: any): string {
@@ -245,6 +245,154 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         error: 'Failed to process chat message',
         details: error.message
       })
+    }
+  })
+
+  // AI chat streaming endpoint
+  fastify.post<{
+    Body: {
+      message: string
+      sessionId?: string
+    }
+  }>('/ai/chat/stream', async (request, reply) => {
+    const { message, sessionId = 'default' } = request.body
+
+    if (!message) {
+      return reply.status(400).send({ error: 'Message is required' })
+    }
+
+    try {
+      // Set headers for Server-Sent Events
+      reply.raw.setHeader('Content-Type', 'text/event-stream')
+      reply.raw.setHeader('Cache-Control', 'no-cache')
+      reply.raw.setHeader('Connection', 'keep-alive')
+
+      // Get or initialize chat history for this session
+      let history = chatHistories.get(sessionId) || []
+
+      // Add user message to history
+      history.push({
+        role: 'user',
+        content: message
+      })
+
+      // Prepare messages with system prompt
+      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT
+        },
+        ...history
+      ]
+
+      // Call OpenAI with tools (non-streaming first to handle tool calls)
+      let response = await openai.chat.completions.create({
+        model: config.ai?.model || 'gpt-4o-mini',
+        messages,
+        tools,
+        tool_choice: 'auto'
+      })
+
+      let assistantMessage = response.choices[0]?.message
+      if (!assistantMessage) {
+        throw new Error('No response from OpenAI')
+      }
+
+      // Handle tool calls if present
+      let iterations = 0
+      const maxIterations = 5
+
+      while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0 && iterations < maxIterations) {
+        iterations++
+
+        // Add assistant's tool call message to history
+        history.push(assistantMessage)
+
+        // Execute each tool call
+        for (const toolCall of assistantMessage.tool_calls) {
+          if (toolCall.type !== 'function') continue
+          const toolResult = executeToolCall(
+            toolCall.function.name,
+            JSON.parse(toolCall.function.arguments)
+          )
+
+          // Add tool result to history
+          history.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: toolResult
+          })
+        }
+
+        // Get next response from the model (streaming this time if it's the final response)
+        const messagesWithTools: OpenAI.Chat.ChatCompletionMessageParam[] = [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT
+          },
+          ...history
+        ]
+
+        response = await openai.chat.completions.create({
+          model: config.ai?.model || 'gpt-4o-mini',
+          messages: messagesWithTools,
+          tools,
+          tool_choice: 'auto'
+        })
+
+        assistantMessage = response.choices[0]?.message
+        if (!assistantMessage) {
+          throw new Error('No response from OpenAI')
+        }
+      }
+
+      // Now stream the final response
+      const streamMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT
+        },
+        ...history
+      ]
+
+      const stream = await openai.chat.completions.create({
+        model: config.ai?.model || 'gpt-4o-mini',
+        messages: streamMessages,
+        stream: true
+      })
+
+      let fullContent = ''
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || ''
+        if (content) {
+          fullContent += content
+          // Send SSE event
+          reply.raw.write(`data: ${JSON.stringify({ content })}\n\n`)
+        }
+      }
+
+      // Add final assistant response to history
+      history.push({
+        role: 'assistant',
+        content: fullContent
+      })
+
+      // Trim history to max length
+      if (history.length > MAX_HISTORY_LENGTH) {
+        history = history.slice(-MAX_HISTORY_LENGTH)
+      }
+
+      // Save updated history
+      chatHistories.set(sessionId, history)
+
+      // Send final event
+      reply.raw.write(`data: ${JSON.stringify({ done: true, sessionId })}\n\n`)
+      reply.raw.end()
+    } catch (error: any) {
+      fastify.log.error(error)
+      reply.raw.write(`data: ${JSON.stringify({ error: 'Failed to process chat message' })}\n\n`)
+      reply.raw.end()
     }
   })
 

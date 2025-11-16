@@ -179,8 +179,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         model: config.ai?.model || 'gpt-4o-mini',
         messages,
         tools,
-        tool_choice: 'auto',
-        temperature: 0.7
+        tool_choice: 'auto'
       })
 
       let assistantMessage = response.choices[0]?.message

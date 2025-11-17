@@ -10,6 +10,9 @@ import aiAgentModule from './modules/ai-agent/index.js'
 import mediaHostingModule from './modules/media-hosting/index.js'
 import schedulingModule from './modules/scheduling/index.js'
 import ragModule from './modules/rag/index.js'
+import googleCalendarModule from './modules/google-calendar/index.js'
+import gmailModule from './modules/gmail/index.js'
+import contactModule from './modules/contact/index.js'
 
 const fastify = Fastify({
   logger: {
@@ -61,6 +64,17 @@ fastify.get('/', async (request, reply) => {
 
 // Load modules conditionally based on configuration
 const loadModules = async () => {
+  // Always register Gmail and Contact modules (they handle missing config gracefully)
+  await fastify.register(gmailModule)
+  await fastify.register(contactModule)
+
+  // Register Calendar module if Google credentials are configured
+  if (config.google?.credentials) {
+    await fastify.register(googleCalendarModule)
+  } else {
+    fastify.log.warn('Google Calendar credentials not configured - Calendar features disabled')
+  }
+
   if (config.modules.blog) {
     await fastify.register(blogModule)
   }

@@ -18,6 +18,27 @@ const vectorDbConfig = process.env.VECTOR_DB_URL ? {
   ...(process.env.VECTOR_DB_API_KEY && { apiKey: process.env.VECTOR_DB_API_KEY })
 } as const : undefined
 
+// Parse Google Calendar credentials from environment
+const googleConfig = process.env.GOOGLE_CREDENTIALS ? (() => {
+  try {
+    return {
+      credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS!),
+      ...(process.env.GOOGLE_CALENDAR_ID && { calendarId: process.env.GOOGLE_CALENDAR_ID })
+    }
+  } catch (error) {
+    console.error('Failed to parse GOOGLE_CREDENTIALS:', error)
+    return undefined
+  }
+})() : undefined
+
+// Parse Gmail SMTP credentials from environment
+const gmailConfig = (process.env.GMAIL_EMAIL && process.env.GMAIL_PASSWORD) ? {
+  email: process.env.GMAIL_EMAIL,
+  password: process.env.GMAIL_PASSWORD,
+  ...(process.env.GMAIL_TEACHER_EMAIL && { teacherEmail: process.env.GMAIL_TEACHER_EMAIL }),
+  ...(process.env.GMAIL_FROM && { emailFrom: process.env.GMAIL_FROM })
+} : undefined
+
 export const config: AppConfig = {
   // Server
   port: Number(process.env.PORT) || 3000,
@@ -53,5 +74,11 @@ export const config: AppConfig = {
   ...(aiConfig && { ai: aiConfig }),
 
   // Vector DB configuration (optional)
-  ...(vectorDbConfig && { vectorDb: vectorDbConfig })
+  ...(vectorDbConfig && { vectorDb: vectorDbConfig }),
+
+  // Google Calendar API configuration (optional)
+  ...(googleConfig && { google: googleConfig }),
+
+  // Gmail SMTP configuration (optional)
+  ...(gmailConfig && { gmail: gmailConfig })
 }

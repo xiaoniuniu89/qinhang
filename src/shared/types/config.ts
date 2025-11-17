@@ -41,4 +41,18 @@ export interface AppConfig {
     url?: string
     apiKey?: string
   }
+
+  // Google Calendar API configuration
+  google?: {
+    credentials?: any // Google service account credentials JSON
+    calendarId?: string // Google Calendar ID to check for availability
+  }
+
+  // Gmail SMTP configuration
+  gmail?: {
+    email: string // Gmail address (e.g., cczcy333@gmail.com)
+    password: string // Gmail app password (not regular password!)
+    teacherEmail?: string // Email address to send contact forms and bookings to
+    emailFrom?: string // From name/address for emails
+  }
 }

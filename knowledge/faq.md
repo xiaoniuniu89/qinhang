@@ -65,6 +65,18 @@ A typical lesson includes:
 5. Theory and sight-reading (as needed)
 6. Practice assignments for the week
 
+### Do I need to buy textbooks and materials?
+
+**No - CC provides all teaching materials!**
+
+You don't need to purchase:
+- Method books
+- Sheet music
+- Practice materials
+- Theory workbooks
+
+CC will supply appropriate materials based on your level, goals, and interests. This ensures you're always working with the right resources for your stage of learning.
+
 ### Do I need a piano at home?
 
 **Yes, a piano or keyboard at home is essential** for:
@@ -72,8 +84,29 @@ A typical lesson includes:
 - Reinforcing concepts learned in lessons
 - Building muscle memory and technique
 
-**Minimum recommendation**: 61-key keyboard with weighted keys
-**Ideal**: Full 88-key acoustic or digital piano
+**Minimum recommendation**: Digital piano or keyboard with **weighted keys** (重力键盘)
+**Ideal**: Full 88-key acoustic or digital piano with weighted/hammer-action keys
+
+**Electric piano/digital piano is acceptable** as long as it has weighted keys to develop proper finger strength and technique.
+
+### Are online lessons available?
+
+**Yes, online lessons are offered** via Zoom or similar platforms.
+
+**Pricing**: Same as in-person lessons
+
+**Important note**: Online lessons are **not recommended for complete beginners**. They work best for:
+- Students with some piano experience
+- Intermediate or advanced students
+- Students who already have good foundational technique
+- Continuing students who need flexibility (travel, illness, etc.)
+
+**Why not for beginners?**
+- Hands-on guidance for posture and hand position is crucial for beginners
+- In-person correction of technique prevents bad habits
+- Physical demonstration is more effective for new learners
+
+**Contact us** to discuss if online lessons are suitable for your situation.
 
 ---
 
@@ -218,13 +251,13 @@ Contact us through the website form to book a trial lesson.
 
 ### How much should I practice?
 
-**General guidelines**:
-- **Beginners**: 15-30 minutes daily
-- **Intermediate**: 30-45 minutes daily
-- **Advanced**: 45-60+ minutes daily
+**Daily practice recommendations**:
+- **Beginners**: 10 minutes daily minimum
+- **Intermediate**: At least 30 minutes daily
+- **Advanced**: At least 30 minutes daily (often 45-60+ minutes)
 - **Exam preparation**: Additional focused practice time
 
-**Quality over quantity!** Focused, effective practice is more important than long hours.
+**Quality over quantity!** Focused, effective practice is more important than long hours. Even 10 minutes of concentrated practice daily for beginners is better than sporadic longer sessions.
 
 ### How long until I can play a song?
 

@@ -35,7 +35,11 @@ const knowledgeMap = {
   },
   'lessons.md': {
     topic: 'lessons',
-    keywords: ['lesson', 'class', 'teaching', 'beginner', 'intermediate', 'advanced', 'age', 'children', 'adult', 'family', 'group', 'accompaniment', 'type', 'format', 'duration', 'long']
+    keywords: ['lesson', 'class', 'teaching', 'beginner', 'intermediate', 'advanced', 'age', 'children', 'adult', 'family', 'group', 'type', 'format', 'duration', 'long', 'style', 'classical', 'jazz', 'pop', 'popular', 'competition']
+  },
+  'accompaniment.md': {
+    topic: 'accompaniment',
+    keywords: ['accompaniment', 'accompany', 'accompanist', 'violin', 'flute', 'vocal', 'singer', 'voice', 'instrumentalist', 'rehearsal', 'performance', 'recital', 'concert', 'event']
   },
   'schedule.md': {
     topic: 'schedule',

@@ -28,17 +28,20 @@ Piano lessons are available as **in-home tuition** throughout the following area
 
 ## Coverage Area
 
-The service area generally covers:
-- County Westmeath (central and surrounding)
-- County Offaly (northern areas)
-- North Kildare (extending towards Dublin)
+The service area generally covers a **50km radius from Kinnegad**, including:
+- **County Westmeath** (central and surrounding areas)
+- **County Offaly** (northern areas, especially Tullamore and Edenderry)
+- **North County Kildare** (Maynooth, Celbridge, Lucan)
+- **County Meath** (nearby areas)
+- **Parts of Dublin** (western suburbs within the service radius)
+- **Surrounding areas** within reasonable travel distance
 
-## Outside Listed Areas?
+## Outside the Service Area?
 
-If you're located outside the areas listed above:
-- **Please contact us** to inquire about coverage
-- We may be able to accommodate students in nearby areas
-- Distance and scheduling will be considered on a case-by-case basis
+If you're located outside the listed areas or beyond approximately 50km from Kinnegad:
+- **Please contact us** to inquire if we can accommodate your location
+- Areas like **Cork, Galway, Limerick, Waterford, Kerry, and other distant counties** are generally too far for regular lessons
+- Distance and scheduling will be considered on a case-by-case basis for borderline areas
 
 ## Teaching Locations
 
@@ -57,4 +60,6 @@ There is **no preference** between these options - the location depends on:
 
 ## Geographic Notes
 
-This service area provides convenient access to piano lessons across the Irish Midlands, connecting students in Westmeath, Offaly, and North Kildare with professional, personalized piano instruction.
+CC is **based in Kinnegad, Co. Westmeath** (just off the N4), which provides excellent access to the Irish Midlands and western Dublin suburbs. The service area covers approximately **50km radius**, connecting students in Westmeath, Offaly, Meath, North Kildare, and parts of Dublin with professional, personalized piano instruction.
+
+**Location on N4**: Kinnegad's position on the N4 motorway makes it easily accessible from both Dublin and the Midlands, enabling efficient travel to students throughout the service area.

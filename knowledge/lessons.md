@@ -181,6 +181,7 @@ Extended lessons for:
 - Personal goals and interests
 - Pace adjusted to student needs
 - Repertoire choices reflecting student preferences
+- **Students can choose their own pieces** - You're encouraged to select music you love and want to play!
 
 ### Building Well-Rounded Musicians
 - Technical skills
@@ -188,6 +189,76 @@ Extended lessons for:
 - Performance confidence
 - Music literacy
 - Appreciation for diverse styles
+
+### Teaching Priorities for Beginners
+
+For students just starting out, CC focuses on:
+1. **Music reading (sight-reading)** - Building strong note-reading skills from day one
+2. **Musicality** - Developing expressive playing and musical sensitivity early
+3. **Proper technique** - Establishing good hand position and posture
+
+### Different Approaches for Different Ages
+
+**Children:**
+- Shorter attention spans accommodated
+- Fun, engaging repertoire
+- Game-based learning elements
+- Age-appropriate pace and expectations
+
+**Adults:**
+- **More diverse teaching methods** - Variety of approaches suited to mature learners
+- **Stronger comprehension** - Adults often grasp concepts more quickly
+- **Broader lesson content** - More material covered per session due to better focus and retention
+- Flexibility to pursue specific musical interests
+- Respect for prior life experience and learning preferences
+
+---
+
+## Musical Styles Taught
+
+CC teaches a **wide range of musical styles** to suit every student's taste:
+
+### Classical Music
+- Baroque, Classical, Romantic, and Contemporary classical
+- All major composers and periods
+- Exam repertoire preparation
+- Performance-level classical pieces
+
+### Popular Music
+- Contemporary pop songs
+- Movie and musical theatre pieces
+- Modern arrangements
+- Chart hits and favorites
+
+### Jazz
+- Jazz standards
+- Improvisation basics
+- Jazz harmony and rhythm
+- Popular jazz pieces
+
+**Your choice!** Students are encouraged to explore different styles and choose pieces they're passionate about. Whether you love Beethoven, Taylor Swift, or jazz standards, there's room for your musical preferences in your lessons.
+
+---
+
+## Performance Opportunities
+
+### Competitions
+
+For students interested in performing and competing:
+- CC **actively seeks appropriate competitions** based on your skill level
+- Helps prepare students for local and regional competitions
+- Guidance on competition selection and preparation
+- Performance coaching and confidence building
+
+### Why Compete?
+
+- Builds performance confidence
+- Sets concrete goals
+- Provides valuable experience
+- Opportunity for recognition and achievement
+- Motivates practice and improvement
+
+**Interested in competitions?** Let CC know during lessons, and she'll help find suitable opportunities for you.
 
 ---
 

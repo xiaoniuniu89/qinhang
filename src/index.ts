@@ -13,11 +13,13 @@ import ragModule from './modules/rag/index.js'
 import googleCalendarModule from './modules/google-calendar/index.js'
 import gmailModule from './modules/gmail/index.js'
 import contactModule from './modules/contact/index.js'
+import sessionModule from './modules/session/index.js'
 
 const fastify = Fastify({
   logger: {
     level: config.env === 'development' ? 'info' : 'warn'
-  }
+  },
+  bodyLimit: 1048576 // 1MB global limit to prevent payload attacks
 })
 
 // Enable CORS
@@ -37,6 +39,15 @@ await fastify.register(rateLimit, {
   max: 20, // Maximum 20 requests
   timeWindow: '1 minute', // Per minute per IP
   errorResponseBuilder: function (request, context) {
+    // Log rate limit violations for monitoring
+    fastify.log.warn({
+      ip: request.ip,
+      url: request.url,
+      method: request.method,
+      max: context.max,
+      timeWindow: context.after
+    }, 'Rate limit exceeded - potential abuse attempt')
+
     return {
       statusCode: 429,
       error: 'Too Many Requests',
@@ -64,7 +75,8 @@ fastify.get('/', async (request, reply) => {
 
 // Load modules conditionally based on configuration
 const loadModules = async () => {
-  // Always register Gmail and Contact modules (they handle missing config gracefully)
+  // Always register Session, Gmail and Contact modules (they handle missing config gracefully)
+  await fastify.register(sessionModule)
   await fastify.register(gmailModule)
   await fastify.register(contactModule)
 

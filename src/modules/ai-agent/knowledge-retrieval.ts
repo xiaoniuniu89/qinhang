@@ -78,7 +78,6 @@ export function loadKnowledgeBase(): void {
     }
   }
 
-  console.log(`Knowledge base loaded: ${knowledgeBase.length} documents`)
 }
 
 /**

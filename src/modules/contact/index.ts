@@ -14,7 +14,14 @@ const contactPlugin: FastifyPluginAsync = async (fastify, opts) => {
       message: string
       phone?: string
     }
-  }>('/contact', async (request, reply) => {
+  }>('/contact', {
+    config: {
+      rateLimit: {
+        max: 2,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     const { name, email, message, phone } = request.body
 
     // Validate required fields
@@ -25,9 +32,27 @@ const contactPlugin: FastifyPluginAsync = async (fastify, opts) => {
       })
     }
 
+    // Validate field lengths to prevent abuse
+    if (name.length > 100 || email.length > 100 || message.length > 2000) {
+      fastify.log.warn({
+        ip: request.ip,
+        nameLength: name.length,
+        emailLength: email.length,
+        messageLength: message.length
+      }, 'Rejected oversized contact form - potential abuse attempt')
+      return reply.status(400).send({
+        error: 'Input too long',
+        details: 'Name and email must be under 100 characters, message under 2,000 characters'
+      })
+    }
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
+      fastify.log.warn({
+        ip: request.ip,
+        email
+      }, 'Invalid email format in contact form')
       return reply.status(400).send({
         error: 'Invalid email address'
       })

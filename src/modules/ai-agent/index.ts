@@ -1,10 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
+import { randomUUID } from 'crypto'
 import OpenAI from 'openai'
 import { config } from '../../config/index.js'
 import { loadKnowledgeBase, searchKnowledge, getKnowledgeByTopic, extractRelevantSection } from './knowledge-retrieval.js'
 import { getAvailabilitySummary } from '../google-calendar/index.js'
 import { sendEmail, generateBookingInquiryEmail } from '../gmail/index.js'
+import { validateSessionToken, decrementSessionMessages } from '../session/index.js'
 
 // In-memory chat history storage (use Redis or database in production)
 const chatHistories = new Map<string, OpenAI.Chat.ChatCompletionMessageParam[]>()
@@ -12,6 +14,9 @@ const MAX_HISTORY_LENGTH = 20
 
 // Track active requests per session to prevent concurrent requests
 const activeRequests = new Map<string, boolean>()
+
+// Cost optimization thresholds
+const MESSAGE_THRESHOLD_FOR_CHEAPER_MODEL = 10
 
 // Enhanced tools with knowledge base search and calendar
 const tools: OpenAI.Chat.ChatCompletionTool[] = [
@@ -346,15 +351,72 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       message: string
       sessionId?: string
     }
-  }>('/ai/chat', async (request, reply) => {
-    const { message, sessionId = 'default' } = request.body
+    Headers: {
+      'x-session-token'?: string
+    }
+  }>('/ai/chat', {
+    bodyLimit: 102400 // 100KB limit for chat messages
+  }, async (request, reply) => {
+    const { message } = request.body
+    const sessionToken = request.headers['x-session-token']
 
     if (!message) {
       return reply.status(400).send({ error: 'Message is required' })
     }
 
+    // Validate session token
+    if (!sessionToken) {
+      return reply.status(401).send({
+        error: 'No session token',
+        message: 'Please refresh the page to start a new chat session.',
+        requiresNewToken: true
+      })
+    }
+
+    const session = validateSessionToken(sessionToken)
+    if (!session) {
+      return reply.status(401).send({
+        error: 'Invalid or expired session',
+        message: 'Your session has expired. Please refresh the page to continue chatting.',
+        requiresNewToken: true
+      })
+    }
+
+    // Check if session has messages remaining
+    if (session.messagesRemaining <= 0) {
+      fastify.log.info({
+        ip: request.ip,
+        token: sessionToken
+      }, 'Session reached message limit')
+      return reply.status(403).send({
+        error: 'Session limit reached',
+        message: "We've had a great chat! If you'd like to continue the conversation or have more questions, please fill out the contact form and CC will get back to you directly.",
+        messagesRemaining: 0
+      })
+    }
+
+    // Generate a unique sessionId for chat history tracking
+    const sessionId = request.body.sessionId || randomUUID()
+
+    // Validate message length to prevent abuse
+    if (message.length > 10000) {
+      fastify.log.warn({
+        ip: request.ip,
+        sessionId,
+        messageLength: message.length
+      }, 'Rejected oversized message - potential abuse attempt')
+      return reply.status(400).send({
+        error: 'Message too long',
+        details: 'Messages must be under 10,000 characters'
+      })
+    }
+
     // Check if there's already an active request for this session
     if (activeRequests.get(sessionId)) {
+      fastify.log.warn({
+        ip: request.ip,
+        sessionId
+      }, 'Concurrent request attempt blocked')
       return reply.status(429).send({
         error: 'Request already in progress',
         message: 'Please wait for the current request to complete before sending a new message.'
@@ -374,6 +436,22 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         content: message
       })
 
+      // Decrement message count for this token
+      if (!decrementSessionMessages(sessionToken)) {
+        return reply.status(500).send({
+          error: 'Failed to update session',
+          message: 'An error occurred while processing your message.'
+        })
+      }
+
+      // Determine which model to use based on messages remaining
+      const messagesUsed = 25 - session.messagesRemaining + 1 // +1 for current message
+      let modelToUse = config.ai?.model || 'gpt-4o-mini'
+      if (messagesUsed > MESSAGE_THRESHOLD_FOR_CHEAPER_MODEL) {
+        modelToUse = 'gpt-3.5-turbo' // Switch to cheaper model after threshold
+        fastify.log.info({ sessionToken, messagesUsed }, 'Switching to cheaper model (gpt-3.5-turbo) for cost optimization')
+      }
+
       // Prepare messages with system prompt
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
@@ -385,7 +463,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
 
       // Call OpenAI with tools
       let response = await openai.chat.completions.create({
-        model: config.ai?.model || 'gpt-4o-mini',
+        model: modelToUse,
         messages,
         tools,
         tool_choice: 'auto'
@@ -433,7 +511,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         ]
 
         response = await openai.chat.completions.create({
-          model: config.ai?.model || 'gpt-4o-mini',
+          model: modelToUse,
           messages: messagesWithTools,
           tools,
           tool_choice: 'auto'
@@ -481,17 +559,74 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       message: string
       sessionId?: string
     }
-  }>('/ai/chat/stream', async (request, reply) => {
-    const { message, sessionId = 'default' } = request.body
+    Headers: {
+      'x-session-token'?: string
+    }
+  }>('/ai/chat/stream', {
+    bodyLimit: 102400 // 100KB limit for chat messages
+  }, async (request, reply) => {
+    const { message } = request.body
+    const sessionToken = request.headers['x-session-token']
 
-    fastify.log.info({ message, sessionId }, 'Received streaming chat request')
+    fastify.log.info({ message }, 'Received streaming chat request')
 
     if (!message) {
       return reply.status(400).send({ error: 'Message is required' })
     }
 
+    // Validate session token
+    if (!sessionToken) {
+      return reply.status(401).send({
+        error: 'No session token',
+        message: 'Please refresh the page to start a new chat session.',
+        requiresNewToken: true
+      })
+    }
+
+    const session = validateSessionToken(sessionToken)
+    if (!session) {
+      return reply.status(401).send({
+        error: 'Invalid or expired session',
+        message: 'Your session has expired. Please refresh the page to continue chatting.',
+        requiresNewToken: true
+      })
+    }
+
+    // Check if session has messages remaining
+    if (session.messagesRemaining <= 0) {
+      fastify.log.info({
+        ip: request.ip,
+        token: sessionToken
+      }, 'Session reached message limit')
+      return reply.status(403).send({
+        error: 'Session limit reached',
+        message: "We've had a great chat! If you'd like to continue the conversation or have more questions, please fill out the contact form and CC will get back to you directly.",
+        messagesRemaining: 0
+      })
+    }
+
+    // Generate a unique sessionId for chat history tracking
+    const sessionId = request.body.sessionId || randomUUID()
+
+    // Validate message length to prevent abuse
+    if (message.length > 10000) {
+      fastify.log.warn({
+        ip: request.ip,
+        sessionId,
+        messageLength: message.length
+      }, 'Rejected oversized message - potential abuse attempt')
+      return reply.status(400).send({
+        error: 'Message too long',
+        details: 'Messages must be under 10,000 characters'
+      })
+    }
+
     // Check if there's already an active request for this session
     if (activeRequests.get(sessionId)) {
+      fastify.log.warn({
+        ip: request.ip,
+        sessionId
+      }, 'Concurrent request attempt blocked')
       return reply.status(429).send({
         error: 'Request already in progress',
         message: 'Please wait for the current request to complete before sending a new message.'
@@ -518,6 +653,22 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         content: message
       })
 
+      // Decrement message count for this token
+      if (!decrementSessionMessages(sessionToken)) {
+        return reply.status(500).send({
+          error: 'Failed to update session',
+          message: 'An error occurred while processing your message.'
+        })
+      }
+
+      // Determine which model to use based on messages remaining
+      const messagesUsed = 25 - session.messagesRemaining + 1 // +1 for current message
+      let modelToUse = config.ai?.model || 'gpt-4o-mini'
+      if (messagesUsed > MESSAGE_THRESHOLD_FOR_CHEAPER_MODEL) {
+        modelToUse = 'gpt-3.5-turbo' // Switch to cheaper model after threshold
+        fastify.log.info({ sessionToken, messagesUsed }, 'Switching to cheaper model (gpt-3.5-turbo) for cost optimization')
+      }
+
       // Prepare messages with system prompt
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
@@ -531,7 +682,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
 
       // Call OpenAI with tools (non-streaming first to handle tool calls)
       let response = await openai.chat.completions.create({
-        model: config.ai?.model || 'gpt-4o-mini',
+        model: modelToUse,
         messages,
         tools,
         tool_choice: 'auto'
@@ -583,7 +734,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
         ]
 
         response = await openai.chat.completions.create({
-          model: config.ai?.model || 'gpt-4o-mini',
+          model: modelToUse,
           messages: messagesWithTools,
           tools,
           tool_choice: 'auto'
@@ -608,7 +759,7 @@ const aiAgentPlugin: FastifyPluginAsync = async (fastify, opts) => {
       ]
 
       const stream = await openai.chat.completions.create({
-        model: config.ai?.model || 'gpt-4o-mini',
+        model: modelToUse,
         messages: streamMessages,
         stream: true
       })

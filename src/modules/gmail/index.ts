@@ -321,7 +321,14 @@ const gmailPlugin: FastifyPluginAsync = async (fastify, opts) => {
   // Test endpoint to send an email
   fastify.post<{
     Body: EmailOptions
-  }>('/gmail/send', async (request, reply) => {
+  }>('/gmail/send', {
+    config: {
+      rateLimit: {
+        max: 2,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     if (!config.gmail?.email || !config.gmail?.password) {
       return reply.status(503).send({ error: 'Gmail not configured' })
     }

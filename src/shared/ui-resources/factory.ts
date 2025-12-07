@@ -10,6 +10,7 @@
 import { createUIResource } from '@mcp-ui/server'
 import { getBusinessConfig } from '../business-config.js'
 import type { BusinessConfig } from '../business-config.js'
+import { generateShadcnStyles } from './shadcn-variables.js'
 
 export type UIResourceType = 'contact-buttons' | 'email-form' | 'pricing-table' | 'whatsapp-link'
 
@@ -34,6 +35,8 @@ export class UIResourceFactory {
 
   /**
    * Create a contact buttons UI with Email and WhatsApp options
+   * 
+   * Server-side HTML generation - no frontend endpoints needed
    */
   createContactButtons(options: UIResourceOptions = {}) {
     const { locale = 'en', conversationSummary, hasConversation = false } = options
@@ -53,7 +56,7 @@ export class UIResourceFactory {
     }
 
     const t = translations[locale]
-
+    
     // Use conversation summary if available, otherwise use default message
     let whatsappMessageText: string
     if (conversationSummary && hasConversation) {
@@ -63,123 +66,100 @@ export class UIResourceFactory {
         ? contact.whatsapp.defaultMessage.zh || contact.whatsapp.defaultMessage.en
         : contact.whatsapp.defaultMessage.en
     }
-    const whatsappMessage = encodeURIComponent(whatsappMessageText)
 
-    const htmlContent = `
+    const shadcnStyles = generateShadcnStyles(true, false)
+    const whatsappUrl = `https://wa.me/${contact.whatsapp.number}?text=${encodeURIComponent(whatsappMessageText)}`
+
+    const html = `
       <!DOCTYPE html>
       <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 16px;
-            background: transparent;
-          }
-          .container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-          .title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-          }
-          .button {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 18px;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: white;
-            text-decoration: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-          }
-          .button:active {
-            transform: translateY(0);
-          }
-          .contact-btn {
-            background: ${theme.primaryColor};
-          }
-          .contact-btn:hover {
-            background: ${theme.secondaryColor || theme.primaryColor};
-            opacity: 0.9;
-          }
-          .whatsapp-btn {
-            background: #25D366;
-          }
-          .whatsapp-btn:hover {
-            background: #20ba5a;
-          }
-          .icon {
-            font-size: 18px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="title">${t.title}</div>
-
-          <button class="button contact-btn" onclick="navigateToContact()">
-            <span class="icon">📝</span>
-            <span>${t.contactPage}</span>
-          </button>
-
-          <button class="button whatsapp-btn" onclick="openWhatsApp()">
-            <span class="icon">💬</span>
-            <span>${t.whatsapp}</span>
-          </button>
-        </div>
-
-        <script>
-          function navigateToContact() {
-            window.parent.postMessage({
-              type: 'tool',
-              payload: {
-                toolName: 'navigate_to_contact',
-                params: {}
-              }
-            }, '*');
-          }
-
-          function openWhatsApp() {
-            const url = 'https://wa.me/${contact.whatsapp.number}?text=${whatsappMessage}';
-            window.parent.postMessage({
-              type: 'link',
-              payload: {
-                url: url,
-                openInNewTab: true
-              }
-            }, '*');
-          }
-
-          // Notify parent of size
-          window.addEventListener('load', () => {
-            const height = document.body.scrollHeight;
-            window.parent.postMessage({
-              type: 'ui-size-change',
-              payload: { height }
-            }, '*');
-          });
-        </script>
-      </body>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+          <style>
+            ${shadcnStyles}
+            * {
+              box-sizing: border-box;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: transparent;
+              font-family: system-ui, -apple-system, sans-serif;
+              overflow-x: hidden;
+              width: 100%;
+            }
+            body {
+              padding: 8px;
+            }
+            .container {
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              width: 100%;
+              max-width: 100%;
+            }
+            .title {
+              font-size: 14px;
+              font-weight: 600;
+              margin: 0 0 4px 0;
+              color: #1a1a1a;
+            }
+            .btn {
+              width: 100%;
+              max-width: 100%;
+              padding: 10px 16px;
+              border: none;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              transition: all 0.2s;
+              text-decoration: none;
+              color: white;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .btn-primary {
+              background: #2c5282;
+              color: white;
+            }
+            .btn-primary:hover {
+              background: #1e3a5f;
+            }
+            .btn-whatsapp {
+              background: #25D366;
+              color: white;
+            }
+            .btn-whatsapp:hover {
+              background: #20ba5a;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h3 class="title">${t.title}</h3>
+            <button class="btn btn-primary" onclick="window.parent.postMessage({type:'tool',payload:{toolName:'navigate_to_contact',params:{}}}, '*')">
+              📝 ${t.contactPage}
+            </button>
+            <a href="${whatsappUrl}" target="_blank" class="btn btn-whatsapp">
+              💬 ${t.whatsapp}
+            </a>
+          </div>
+          <script>
+            function notifySize() {
+              const height = document.body.scrollHeight;
+              window.parent.postMessage({type:'ui-size-change',payload:{height}}, '*');
+            }
+            notifySize();
+            window.addEventListener('resize', notifySize);
+          </script>
+        </body>
       </html>
     `
 
@@ -187,13 +167,12 @@ export class UIResourceFactory {
       uri: `ui://contact/buttons/${Date.now()}`,
       content: {
         type: 'rawHtml',
-        htmlString: htmlContent
+        htmlString: html
       },
       encoding: 'text',
       metadata: {
         title: t.title,
-        description: 'Quick contact options for getting in touch',
-        'mcpui.dev/ui-preferred-frame-size': ['auto', '200px']
+        description: 'Quick contact options for getting in touch'
       }
     })
   }
@@ -210,226 +189,177 @@ export class UIResourceFactory {
 
     const translations = {
       en: {
-        title: 'Ready to Send Your Booking Request',
+        title: 'Choose how to send',
         emailBtn: 'Send Email to CC',
-        whatsappBtn: 'WhatsApp CC',
-        summary: 'Your booking details'
+        whatsappBtn: 'WhatsApp CC'
       },
       zh: {
-        title: '准备发送您的预订请求',
+        title: '选择发送方式',
         emailBtn: '发送邮件给 CC',
-        whatsappBtn: '通过 WhatsApp 联系 CC',
-        summary: '您的预订详情'
+        whatsappBtn: '通过 WhatsApp 联系 CC'
       }
     }
 
     const t = translations[locale]
 
-    // Generate WhatsApp message with booking details
-    const whatsappParts: string[] = []
-
+    // Generate WhatsApp message from booking details
+    const parts: string[] = []
     if (locale === 'zh') {
-      whatsappParts.push('你好！')
-      if (bookingDetails.name) whatsappParts.push(`我叫${bookingDetails.name}。`)
-      if (bookingDetails.location) whatsappParts.push(`我在${bookingDetails.location}。`)
-      if (bookingDetails.requestedTimes && bookingDetails.requestedTimes.length > 0) {
-        whatsappParts.push(`我想预订${bookingDetails.requestedTimes.join('或')}的钢琴课程。`)
-      } else {
-        whatsappParts.push('我想咨询钢琴课程。')
+      parts.push('你好！')
+      if (bookingDetails.name) parts.push(`我叫${bookingDetails.name}。`)
+      if (bookingDetails.location) parts.push(`我在${bookingDetails.location}。`)
+      if (bookingDetails.requestedTimes?.length) {
+        parts.push(`我想预订${bookingDetails.requestedTimes.join('或')}的钢琴课程。`)
       }
-      if (bookingDetails.email) whatsappParts.push(`我的邮箱：${bookingDetails.email}`)
-      if (bookingDetails.phone) whatsappParts.push(`我的电话：${bookingDetails.phone}`)
-      if (bookingDetails.studentAge) whatsappParts.push(`学生年龄：${bookingDetails.studentAge}岁。`)
     } else {
-      whatsappParts.push('Hi!')
-
-      // Add name and location
-      if (bookingDetails.name && bookingDetails.location) {
-        whatsappParts.push(`I'm ${bookingDetails.name} from ${bookingDetails.location}.`)
-      } else if (bookingDetails.name) {
-        whatsappParts.push(`I'm ${bookingDetails.name}.`)
-      } else if (bookingDetails.location) {
-        whatsappParts.push(`I'm from ${bookingDetails.location}.`)
+      parts.push('Hello!')
+      if (bookingDetails.name) parts.push(`My name is ${bookingDetails.name}.`)
+      if (bookingDetails.location) parts.push(`I'm located in ${bookingDetails.location}.`)
+      if (bookingDetails.requestedTimes?.length) {
+        parts.push(`I'm looking to book piano lessons at ${bookingDetails.requestedTimes.join(' or ')}.`)
       }
-
-      // Add time request
-      if (bookingDetails.requestedTimes && bookingDetails.requestedTimes.length > 0) {
-        whatsappParts.push(`I'm looking to book piano lessons at ${bookingDetails.requestedTimes.join(' or ')}.`)
-      } else {
-        whatsappParts.push('I\'m interested in piano lessons.')
-      }
-
-      // Add contact info
-      if (bookingDetails.email) whatsappParts.push(`Email: ${bookingDetails.email}`)
-      if (bookingDetails.phone) whatsappParts.push(`Phone: ${bookingDetails.phone}`)
-
-      // Add additional details
-      if (bookingDetails.studentAge) whatsappParts.push(`Student age: ${bookingDetails.studentAge}.`)
-      if (bookingDetails.lessonType) whatsappParts.push(`Looking for ${bookingDetails.lessonType}.`)
     }
+    if (bookingDetails.phone) parts.push(`📱 ${bookingDetails.phone}`)
+    if (bookingDetails.email) parts.push(`📧 ${bookingDetails.email}`)
 
-    const whatsappMessage = encodeURIComponent(whatsappParts.join(' '))
+    const whatsappMessage = parts.join(' ')
+    const whatsappUrl = `https://wa.me/${contact.whatsapp.number}?text=${encodeURIComponent(whatsappMessage)}`
 
-    // Debug: Log to console what we're generating
-    console.log('Booking details for WhatsApp:', bookingDetails)
-    console.log('WhatsApp message:', decodeURIComponent(whatsappMessage))
-    console.log('Contact number:', contact.whatsapp.number)
-    console.log('Full WhatsApp URL:', `https://wa.me/${contact.whatsapp.number}?text=${whatsappMessage}`)
+    const shadcnStyles = generateShadcnStyles(true, false)
 
-    const htmlContent = `
+    const html = `
       <!DOCTYPE html>
       <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 16px;
-            background: transparent;
-          }
-          .container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-          .title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-          }
-          .button {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 18px;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: white;
-            text-decoration: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-          }
-          .button:active {
-            transform: translateY(0);
-          }
-          .email-btn {
-            background: ${theme.primaryColor};
-          }
-          .email-btn:hover {
-            opacity: 0.9;
-          }
-          .whatsapp-btn {
-            background: #25D366;
-          }
-          .whatsapp-btn:hover {
-            background: #20ba5a;
-          }
-          .icon {
-            font-size: 18px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="title">${t.title}</div>
-
-          <button class="button email-btn" onclick="sendEmailToCC()">
-            <span class="icon">📧</span>
-            <span>${t.emailBtn}</span>
-          </button>
-
-          <button class="button whatsapp-btn" onclick="whatsappCC()">
-            <span class="icon">💬</span>
-            <span>${t.whatsappBtn}</span>
-          </button>
-        </div>
-
-        <script>
-          const bookingDetails = ${JSON.stringify(bookingDetails)};
-          let buttonClicked = false;
-
-          function disableButtons() {
-            if (buttonClicked) return;
-            buttonClicked = true;
-
-            const buttons = document.querySelectorAll('.button');
-            buttons.forEach(btn => {
-              btn.disabled = true;
-              btn.style.opacity = '0.5';
-              btn.style.cursor = 'not-allowed';
-            });
-          }
-
-          function sendEmailToCC() {
-            if (buttonClicked) return;
-            disableButtons();
-
-            window.parent.postMessage({
-              type: 'tool',
-              payload: {
-                toolName: 'send_booking_email',
-                params: bookingDetails
-              }
-            }, '*');
-          }
-
-          function whatsappCC() {
-            if (buttonClicked) return;
-            disableButtons();
-
-            const whatsappUrl = \`https://wa.me/${contact.whatsapp.number}?text=${whatsappMessage}\`;
-            window.parent.postMessage({
-              type: 'link',
-              payload: {
-                url: whatsappUrl,
-                openInNewTab: true
-              }
-            }, '*');
-          }
-
-          // Notify parent of size
-          window.addEventListener('load', () => {
-            const height = document.body.scrollHeight;
-            window.parent.postMessage({
-              type: 'ui-size-change',
-              payload: { height }
-            }, '*');
-          });
-        </script>
-      </body>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+          <style>
+            ${shadcnStyles}
+            * {
+              box-sizing: border-box;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: transparent;
+              font-family: system-ui, -apple-system, sans-serif;
+              overflow-x: hidden;
+              width: 100%;
+            }
+            body {
+              padding: 8px;
+            }
+            .container {
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              width: 100%;
+              max-width: 100%;
+            }
+            .title {
+              font-size: 14px;
+              font-weight: 600;
+              margin: 0 0 4px 0;
+              color: #1a1a1a;
+            }
+            .btn {
+              width: 100%;
+              max-width: 100%;
+              padding: 10px 16px;
+              border: none;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              transition: all 0.2s;
+              text-decoration: none;
+              color: white;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .btn:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+            .btn-primary {
+              background: #2c5282;
+              color: white;
+            }
+            .btn-primary:hover:not(:disabled) {
+              background: #1e3a5f;
+            }
+            .btn-whatsapp {
+              background: #25D366;
+              color: white;
+            }
+            .btn-whatsapp:hover:not(:disabled) {
+              background: #20ba5a;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h3 class="title">${t.title}</h3>
+            <button 
+              class="btn btn-primary" 
+              id="emailBtn"
+              onclick="handleEmailClick()"
+            >
+              📧 ${t.emailBtn}
+            </button>
+            <a href="${whatsappUrl}" target="_blank" class="btn btn-whatsapp" id="whatsappBtn">
+              💬 ${t.whatsappBtn}
+            </a>
+          </div>
+          <script>
+            let clicked = false;
+            
+            function handleEmailClick() {
+              if (clicked) return;
+              clicked = true;
+              document.getElementById('emailBtn').disabled = true;
+              document.getElementById('whatsappBtn').style.opacity = '0.5';
+              document.getElementById('whatsappBtn').style.pointerEvents = 'none';
+              
+              window.parent.postMessage({
+                type: 'tool',
+                payload: {
+                  toolName: 'send_booking_inquiry',
+                  params: {
+                    bookingDetails: ${JSON.stringify(bookingDetails)},
+                    method: 'email',
+                    locale: '${locale}'
+                  }
+                }
+              }, '*');
+            }
+            
+            function notifySize() {
+              const height = document.body.scrollHeight;
+              window.parent.postMessage({type:'ui-size-change',payload:{height}}, '*');
+            }
+            notifySize();
+            window.addEventListener('resize', notifySize);
+          </script>
+        </body>
       </html>
     `
-
-    // Debug: Log the COMPLETE generated HTML to see what's actually being sent
-    console.log('=== GENERATED HTML FOR BOOKING BUTTONS ===')
-    console.log(htmlContent)
-    console.log('=== END GENERATED HTML ===')
 
     return createUIResource({
       uri: `ui://booking/actions/${Date.now()}`,
       content: {
         type: 'rawHtml',
-        htmlString: htmlContent
+        htmlString: html
       },
       encoding: 'text',
       metadata: {
         title: t.title,
-        description: 'Booking action buttons',
-        'mcpui.dev/ui-preferred-frame-size': ['auto', '200px']
+        description: 'Booking action buttons'
       }
     })
   }

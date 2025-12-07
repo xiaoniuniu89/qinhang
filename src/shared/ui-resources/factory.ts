@@ -147,11 +147,21 @@ export class UIResourceFactory {
             <button class="btn btn-primary" onclick="window.parent.postMessage({type:'tool',payload:{toolName:'navigate_to_contact',params:{}}}, '*')">
               📝 ${t.contactPage}
             </button>
-            <a href="${whatsappUrl}" target="_blank" class="btn btn-whatsapp">
+            <button class="btn btn-whatsapp" onclick="handleWhatsAppClick()">
               💬 ${t.whatsapp}
-            </a>
+            </button>
           </div>
           <script>
+            function handleWhatsAppClick() {
+              window.parent.postMessage({
+                type: 'link',
+                payload: {
+                  url: ${JSON.stringify(whatsappUrl)},
+                  openInNewTab: true
+                }
+              }, '*');
+            }
+            
             function notifySize() {
               const height = document.body.scrollHeight;
               window.parent.postMessage({type:'ui-size-change',payload:{height}}, '*');
@@ -312,9 +322,13 @@ export class UIResourceFactory {
             >
               📧 ${t.emailBtn}
             </button>
-            <a href="${whatsappUrl}" target="_blank" class="btn btn-whatsapp" id="whatsappBtn">
+            <button 
+              class="btn btn-whatsapp" 
+              id="whatsappBtn"
+              onclick="handleWhatsAppClick()"
+            >
               💬 ${t.whatsappBtn}
-            </a>
+            </button>
           </div>
           <script>
             let clicked = false;
@@ -323,8 +337,7 @@ export class UIResourceFactory {
               if (clicked) return;
               clicked = true;
               document.getElementById('emailBtn').disabled = true;
-              document.getElementById('whatsappBtn').style.opacity = '0.5';
-              document.getElementById('whatsappBtn').style.pointerEvents = 'none';
+              document.getElementById('whatsappBtn').disabled = true;
               
               window.parent.postMessage({
                 type: 'tool',
@@ -335,6 +348,21 @@ export class UIResourceFactory {
                     method: 'email',
                     locale: '${locale}'
                   }
+                }
+              }, '*');
+            }
+            
+            function handleWhatsAppClick() {
+              if (clicked) return;
+              clicked = true;
+              document.getElementById('emailBtn').disabled = true;
+              document.getElementById('whatsappBtn').disabled = true;
+              
+              window.parent.postMessage({
+                type: 'link',
+                payload: {
+                  url: ${JSON.stringify(whatsappUrl)},
+                  openInNewTab: true
                 }
               }, '*');
             }
